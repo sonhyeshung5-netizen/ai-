@@ -8,3 +8,4 @@ if st.button('반갑다'):
   st.warning(b+'저도 좋아하는데^^')
   st.error('잘부탁합니다')
   st.balloons()
+  st.rea fish()

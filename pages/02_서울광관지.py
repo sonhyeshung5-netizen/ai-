@@ -2,13 +2,13 @@ import streamlit as st
 import folium
 from streamlit_folium import st_folium
 
-# 1. 페이지 설정
-st.set_page_config(page_title="Seoul Top 10 Tour", layout="wide")
+# 페이지 설정
+st.set_page_config(page_title="Seoul Tour Guide", layout="wide")
 
 st.title("🇰🇷 외국인이 사랑하는 서울 관광지 TOP 10")
-st.info("마커 위에 마우스를 올리면 인근 지하철역을 확인할 수 있습니다.")
+st.info("마커에 마우스를 올리면 가까운 지하철역이 표시됩니다.")
 
-# 2. 데이터 준비
+# 관광지 데이터
 locations = [
     {"name": "경복궁", "lat": 37.5796, "lon": 126.9770, "station": "경복궁역 (3호선)", "todo": "한복 체험, 수문장 교대식 관람"},
     {"name": "명동", "lat": 37.5637, "lon": 126.9841, "station": "명동역 (4호선)", "todo": "길거리 음식 탐방, K-뷰티 쇼핑"},
@@ -22,11 +22,30 @@ locations = [
     {"name": "광장시장", "lat": 37.5701, "lon": 126.9993, "station": "종로5가역 (1호선)", "todo": "빈대떡, 육회 등 전통 시장 먹거리"}
 ]
 
-# 3. 지도 생성 및 마커 추가
+# 지도 생성
 m = folium.Map(location=[37.5665, 126.9780], zoom_start=12)
 
+# 마커 추가
 for loc in locations:
     folium.Marker(
         location=[loc["lat"], loc["lon"]],
         popup=folium.Popup(f"<b>{loc['name']}</b><br>{loc['todo']}", max_width=300),
         tooltip=f"근처역: {loc['station']}",
+        icon=folium.Icon(color='red', icon='info-sign')
+    ).add_to(m)
+
+# 지도 렌더링
+st_folium(m, width="100%", height=500)
+
+# 하단 가이드
+st.markdown("---")
+st.subheader("📍 관광지 상세 가이드")
+
+col1, col2 = st.columns(2)
+
+for i, loc in enumerate(locations):
+    target_col = col1 if i % 2 == 0 else col2
+    with target_col:
+        with st.expander(f"📌 {loc['name']}"):
+            st.write(f"🚇 **가까운 역:** {loc['station']}")
+            st.write(f"✨ **추천 활동:** {loc['todo']}")

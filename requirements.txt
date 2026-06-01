@@ -1,5 +1,3 @@
-app.py
-requirements.txt
-countriesMBTI_16types.csv
+
 folium
 streamlit-folium

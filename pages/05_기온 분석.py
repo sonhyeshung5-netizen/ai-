@@ -2,10 +2,10 @@ import streamlit as st
 import pandas as pd
 
 # 페이지 설정
-st.set_page_config(page_title="서울 기온 데이터 시각화", layout="centered")
+st.set_page_config(page_title="서울 역대 날짜별 기온 분석", layout="centered")
 
-st.title("🌡️ 서울 기온 데이터 분석 대시보드")
-st.write("1907년부터의 서울 기온 데이터를 분석하고 지정한 기간의 기온 변화를 시각화합니다.")
+st.title("📅 서울 역대 특정 날짜(월/일) 기온 분석")
+st.write("특정 월과 일을 선택하면, 1907년부터 현재까지 해당 날짜의 최고기온과 최저기온 변화 추이를 보여줍니다.")
 
 # 1. 데이터 로드 및 전처리 함수
 @st.cache_data
@@ -36,59 +36,73 @@ def load_data():
     df['최저기온(℃)'] = pd.to_numeric(df['최저기온(℃)'], errors='coerce')
     df = df.dropna(subset=['최고기온(℃)', '최저기온(℃)'])
     
+    # 분석을 위한 연, 월, 일 컬럼 추가
+    df['연도'] = df['날짜'].dt.year
+    df['월'] = df['날짜'].dt.month
+    df['일'] = df['날짜'].dt.day
+    
     # 날짜 순으로 정렬
     df = df.sort_values('날짜').reset_index(drop=True)
     return df
 
 try:
     df = load_data()
-    
-    # 데이터 날짜 범위 계산
-    min_date = df['날짜'].min().date()
-    max_date = df['날짜'].max().date()
 
-    # 2. 사이드바 - 날짜 범위 선택 설정
-    st.sidebar.header("📅 기간 필터 설정")
+    # 2. 사이드바 - 월 및 일 선택 UI 생성
+    st.sidebar.header("🔍 분석할 날짜 선택")
     
-    # 기본값으로 가장 최근 데이터 기준 30일 설정
-    default_start = max_date - pd.Timedelta(days=30)
+    # 월 선택 (1월 ~ 12월)
+    selected_month = st.sidebar.selectbox("월을 선택하세요", range(1, 13), index=11) # 기본값 12월
     
-    date_range = st.sidebar.date_input(
-        "조회할 날짜 범위를 선택하세요",
-        value=(default_start, max_date),
-        min_value=min_date,
-        max_value=max_date
-    )
+    # 선택한 월에 맞는 일 수 계산 (2월 윤년 고려하여 안전하게 31일까지 제공 후 필터링)
+    selected_day = st.sidebar.selectbox("일을 선택하세요", range(1, 32), index=24) # 기본값 25일
 
-    # 시작일과 종료일이 모두 선택되었을 때 그래프 렌더링
-    if len(date_range) == 2:
-        start_date, end_date = date_range
+    # 3. 데이터 필터링 (매년 선택한 월과 일에 해당하는 데이터만 추출)
+    filtered_df = df[(df['월'] == selected_month) & (df['일'] == selected_day)].copy()
+    
+    if not filtered_df.empty:
+        st.subheader(f"📊 역대 {selected_month}월 {selected_day}일 기온 추이 변화")
+        st.write(f"1907년부터 최근까지 기록된 총 {len(filtered_df)}개의 데이터를 기반으로 합니다.")
         
-        # 선택한 날짜 데이터 필터링
-        filtered_df = df[(df['날짜'].dt.date >= start_date) & (df['날짜'].dt.date <= end_date)].copy()
+        # 4. 차트용 데이터 가공 (X축을 '연도'로 설정)
+        chart_data = filtered_df.set_index('연도')[['최고기온(℃)', '최저기온(℃)']]
         
-        if not filtered_df.empty:
-            st.subheader(f"📊 {start_date} ~ {end_date} 기온 추이")
-            
-            # 3. 차트용 데이터 가공
-            # X축이 될 '날짜'를 인덱스로 지정하고 최고기온과 최저기온만 컬럼으로 추출합니다.
-            chart_data = filtered_df.set_index('날짜')[['최고기온(℃)', '최저기온(℃)']]
-            
-            # 4. 스트림릿 내장 line_chart 사용
-            # 에러가 났던 'colors' 대신 'color' 옵션을 사용하여 최고기온(#FF0000 = 빨강), 최저기온(#0000FF = 파랑)을 매핑합니다.
-            st.line_chart(
-                chart_data, 
-                color=["#FF0000", "#0000FF"]
+        # 5. 스트림릿 내장 line_chart 시각화
+        # 최고기온 = 빨강색(#FF0000), 최저기온 = 파랑색(#0000FF)
+        # 마우스를 올리면 각 연도별 정확한 기온이 툴팁과 함께 범례로 표시됩니다.
+        st.line_chart(
+            chart_data,
+            color=["#FF0000", "#0000FF"]
+        )
+        
+        # 요약 통계 정보 제공
+        col1, col2 = st.columns(2)
+        with col1:
+            max_row = filtered_df.loc[filtered_df['최고기온(℃)'].idxmax()]
+            st.metric(
+                label=f"역대 가장 더웠던 {selected_month}/{selected_day}", 
+                value=f"{max_row['최고기온(℃)']} ℃", 
+                delta=f"{int(max_row['연도'])}년"
+            )
+        with col2:
+            min_row = filtered_df.loc[filtered_df['최저기온(℃)'].idxmin()]
+            st.metric(
+                label=f"역대 가장 추웠던 {selected_month}/{selected_day}", 
+                value=f"{min_row['최저기온(℃)']} ℃", 
+                delta=f"{int(min_row['연도'])}년",
+                delta_color="inverse"
+            )
+
+        # 하단 상세 데이터 테이블 표기
+        with st.expander("📄 데이터 전체 보기"):
+            st.dataframe(
+                filtered_df[['연도', '평균기온(℃)', '최저기온(℃)', '최고기온(℃)']].set_index('연도')
             )
             
-            # 하단 상세 데이터 테이블 표기
-            with st.expander("📄 선택한 기간의 상세 데이터 보기"):
-                st.dataframe(filtered_df[['날짜', '평균기온(℃)', '최저기온(℃)', '최고기온(℃)']].set_index('날짜'))
-                
-        else:
-            st.warning("선택하신 기간에는 데이터가 존재하지 않습니다. 다른 날짜를 선택해 주세요.")
+    else:
+        st.error(f"⚠️ {selected_month}월 {selected_day}일은 존재하지 않는 날짜이거나 데이터가 없습니다. 다시 확인해 주세요.")
             
 except FileNotFoundError:
-    st.error("📂 `seoul.csv` 파일을 찾을 수 없습니다. 이 스크립트 파일과 동일한 디렉토리에 `seoul.csv` 파일이 정상적으로 존재해야 합니다.")
+    st.error("📂 `seoul.csv` 파일을 찾을 수 없습니다. 메인 루트 디렉토리에 파일이 저장되어 있는지 확인해 주세요.")
 except Exception as e:
     st.error(f"⚠️ 앱 실행 중 오류가 발생했습니다: {e}")

@@ -9,7 +9,7 @@ st.set_page_config(page_title="서울 기온 데이터 시각화", layout="cente
 st.title("🌡️ 서울 기온 데이터 분석 대시보드")
 st.write("1907년부터의 서울 기온 데이터를 분석하고 지정한 기간의 기온 변화를 시각화합니다.")
 
-# 1. 데이터 로드 및 전처리 함수 (다양한 인코딩 호환 버전)
+# 1. 데이터 로드 및 전처리 함수
 @st.cache_data
 def load_data():
     encodings = ['utf-8', 'cp949', 'euc-kr', 'utf-8-sig']
@@ -18,9 +18,9 @@ def load_data():
     for enc in encodings:
         try:
             df = pd.read_csv("seoul.csv", encoding=enc)
-            break  # 읽기 성공 시 반복문 탈출
+            break
         except (UnicodeDecodeError, LookupError):
-            continue  # 실패 시 다음 인코딩 시도
+            continue
             
     if df is None:
         raise ValueError("seoul.csv 파일의 한글 인코딩을 인식할 수 없습니다. 파일 형식을 확인해 주세요.")
@@ -76,5 +76,4 @@ try:
             fig, ax = plt.subplots(figsize=(10, 5))
             
             # 최고기온: 빨강(red), 최저기온: 파랑(blue) + 범례(label) 설정
-            ax.plot(filtered_df
-            
+            ax.plot(filtered_df['날짜'], filtered_df

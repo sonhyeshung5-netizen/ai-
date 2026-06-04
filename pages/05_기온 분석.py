@@ -70,14 +70,15 @@ try:
         if not filtered_df.empty:
             st.subheader(f"📊 {start_date} ~ {end_date} 기온 추이")
             
-            # 3. 스트림릿 전용 라인 차트용 데이터 가공
-            # X축이 될 '날짜'를 인덱스로 지정하고 필요한 컬럼만 추출합니다.
+            # 3. 차트용 데이터 가공
+            # X축이 될 '날짜'를 인덱스로 지정하고 최고기온과 최저기온만 컬럼으로 추출합니다.
             chart_data = filtered_df.set_index('날짜')[['최고기온(℃)', '최저기온(℃)']]
             
-            # 4. 스트림릿 내장 line_chart 사용 (최고: 빨강, 최저: 파랑 색상 지정 및 범례 자동 표시)
+            # 4. 스트림릿 내장 line_chart 사용
+            # 에러가 났던 'colors' 대신 'color' 옵션을 사용하여 최고기온(#FF0000 = 빨강), 최저기온(#0000FF = 파랑)을 매핑합니다.
             st.line_chart(
                 chart_data, 
-                colors=["#FF0000", "#0000FF"]  # 첫 번째 컬럼(최고)은 빨강, 두 번째(최저)는 파랑
+                color=["#FF0000", "#0000FF"]
             )
             
             # 하단 상세 데이터 테이블 표기
@@ -91,4 +92,3 @@ except FileNotFoundError:
     st.error("📂 `seoul.csv` 파일을 찾을 수 없습니다. 이 스크립트 파일과 동일한 디렉토리에 `seoul.csv` 파일이 정상적으로 존재해야 합니다.")
 except Exception as e:
     st.error(f"⚠️ 앱 실행 중 오류가 발생했습니다: {e}")
-    

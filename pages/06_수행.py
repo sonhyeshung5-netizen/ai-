@@ -12,6 +12,7 @@ st.sidebar.header("📁 데이터 파일 업로드")
 uploaded_file = st.sidebar.file_uploader("상단의 '서울시 관광 음식.csv' 파일을 여기에 드래그해 주세요.", type=["csv"])
 
 # 데이터 처리 함수
+
 def process_data(file_source):
     # 인코딩 깨짐 방지를 위해 예외 처리 구성
     try:

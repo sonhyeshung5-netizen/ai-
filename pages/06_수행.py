@@ -4,20 +4,22 @@ import pandas as pd
 # 1. 페이지 설정
 st.set_page_config(page_title="서울시 관광 음식점 안내", layout="wide")
 
-st.title(" 🗺️ 서울시 관광 음식점 데이터 가이드")
-st.markdown("서울시의 주요 관광 음식점 정보를 간단하게 정리하여 보여주는 대시보드입니다.")
+st.title("🗺️ 서울시 관광 음식점 데이터 가이드")
+st.markdown("서울시의 주요 관광 음식점 정보를 깔끔하게 정리하여 보여주는 대시보드입니다.")
 
-# 2. 데이터 불러오기 함수 (안정성 강화)
-@st.cache_data
-def load_data():
-    # 인코딩 깨짐을 방지하기 위해 utf-8-sig 또는 cp949를 시도합니다.
+# 2. 사이드바에서 데이터 파일 업로드 받기
+st.sidebar.header("📁 데이터 파일 업로드")
+uploaded_file = st.sidebar.file_uploader("상단의 '서울시 관광 음식.csv' 파일을 여기에 드래그해 주세요.", type=["csv"])
+
+# 데이터 처리 함수
+def process_data(file_source):
+    # 인코딩 깨짐 방지를 위해 예외 처리 구성
     try:
-        df = pd.read_csv("서울시 관광 음식.csv", encoding="utf-8-sig")
+        df = pd.read_csv(file_source, encoding="utf-8-sig")
     except Exception:
-        df = pd.read_csv("서울시 관광 음식.csv", encoding="cp949")
+        df = pd.read_csv(file_source, encoding="cp949")
         
-    # 열 개수가 부족할 경우를 대비하여 안전하게 매핑 진행
-    # 원본 파일 구성에 맞춤 매핑
+    # 원본 파일 구성에 맞춘 핵심 열 이름 매핑
     essential_cols = {}
     col_mapping = {
         1: "언어",
@@ -32,62 +34,63 @@ def load_data():
         if len(df.columns) > idx:
             essential_cols[df.columns[idx]] = name
             
-    # 정의된 열만 추출 및 이름 변경
+    # 유효 열 추출 및 이름 수정
     df_clean = df[list(essential_cols.keys())].rename(columns=essential_cols)
     
-    # 텍스트 검색 및 필터링 시 에러를 방지하기 위해 결측치(NaN)를 빈 문자열로 대체
+    # 결측치(NaN) 빈 문자열로 안전하게 처리
     df_clean = df_clean.fillna("")
     
-    # 앞뒤 공백 제거
+    # 문자열 공백 제거
     for col in df_clean.columns:
         if df_clean[col].dtype == 'object':
             df_clean[col] = df_clean[col].astype(str).str.strip()
             
     return df_clean
 
-# 데이터 로드 실행
-try:
-    df = load_data()
+# 3. 파일이 업로드되었을 때만 화면 구현
+if uploaded_file is not None:
+    try:
+        df = process_data(uploaded_file)
 
-    # 3. 사이드바 검색 및 필터 기능
-    st.sidebar.header("🔍 검색 및 필터")
-    
-    # 언어 선택 (빈 값 제외하고 고유값 추출)
-    unique_langs = [lang for lang in df["언어"].unique() if lang != ""]
-    languages = ["전체"] + list(unique_langs)
-    selected_lang = st.sidebar.selectbox("언어 선택", languages)
-    
-    # 상호명 검색어 입력
-    search_query = st.sidebar.text_input("식당 이름 검색", "")
-
-    # 4. 데이터 필터링 안전하게 적용
-    filtered_df = df.copy()
-    
-    if selected_lang != "전체":
-        filtered_df = filtered_df[filtered_df["언어"] == selected_lang]
+        # 사이드바 필터 영역
+        st.sidebar.write("---")
+        st.sidebar.header("🔍 검색 및 필터")
         
-    if search_query:
-        # na=False 및 전체를 문자열 처리하여 검색 오류 원천 차단
-        filtered_df = filtered_df[filtered_df["상호명"].str.contains(search_query, case=False, na=False)]
+        # 언어 필터 (빈 값 제외)
+        unique_langs = [lang for lang in df["언어"].unique() if lang != ""]
+        languages = ["전체"] + list(unique_langs)
+        selected_lang = st.sidebar.selectbox("언어 선택", languages)
+        
+        # 상호명 검색어
+        search_query = st.sidebar.text_input("식당 이름 검색", "")
 
-    # 5. 메인 화면 통계 및 대시보드 출력
-    col1, col2 = st.columns(2)
-    with col1:
-        st.metric(label="총 등록된 식당 수", value=f"{len(df)}개")
-    with col2:
-        st.metric(label="필터링된 식당 수", value=f"{len(filtered_df)}개")
+        # 데이터 필터링 안전 적용
+        filtered_df = df.copy()
+        if selected_lang != "전체":
+            filtered_df = filtered_df[filtered_df["언어"] == selected_lang]
+            
+        if search_query:
+            filtered_df = filtered_df[filtered_df["상호명"].str.contains(search_query, case=False, na=False)]
 
-    st.write("---")
-    
-    # 데이터 표 출력
-    st.subheader("📋 음식점 정보 목록")
-    
-    if not filtered_df.empty:
-        st.dataframe(filtered_df, use_container_width=True, hide_index=True)
-    else:
-        st.info("검색 조건에 맞는 음식점이 없습니다.")
+        # 메인 화면 수치 요약
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric(label="총 등록된 식당 수", value=f"{len(df)}개")
+        with col2:
+            st.metric(label="필터링된 식당 수", value=f"{len(filtered_df)}개")
 
-except Exception as e:
-    st.error(f"데이터를 불러오거나 처리하는 중 오류가 발생했습니다.")
-    st.code(str(e), language="python")
-    st.info("💡 팁: '서울시 관광 음식.csv' 파일이 이 파이썬 스크립트(app.py)와 동일한 폴더에 저장되어 있는지 다시 한번 확인해 주세요.")
+        st.write("---")
+        
+        # 데이터프레임 시각화 테이블 출력
+        st.subheader("📋 음식점 정보 목록")
+        if not filtered_df.empty:
+            st.dataframe(filtered_df, use_container_width=True, hide_index=True)
+        else:
+            st.info("검색 조건에 맞는 음식점이 존재하지 않습니다.")
+
+    except Exception as e:
+        st.error(f"데이터를 분석하는 과정에서 오류가 발생했습니다.")
+        st.code(str(e), language="python")
+else:
+    # 파일을 아직 올리지 않았을 때 안내 메시지
+    st.info("💡 왼쪽 사이드바의 **[Browse files]** 버튼을 눌러 **'서울시 관광 음식.csv'** 파일을 업로드해 주세요!")

@@ -3,7 +3,7 @@ import streamlit as st
 # 웹페이지 설정
 st.set_page_config(page_title="냉장고 파먹기 레시피 대백과", page_icon="🍳", layout="wide")
 
-# 대폭 확장된 레시pi 데이터베이스
+# 대폭 확장된 레시피 데이터베이스
 RECIPE_DB = [
     {
         "dish": "부드러운 계란찜",
@@ -69,7 +69,77 @@ RECIPE_DB = [
         "dish": "매콤달콤 떡볶이",
         "tags": ["떡볶이떡", "어묵", "대파"],
         "ingredients": ["떡볶이 떡 2컵", "어묵 2장", "대파 1/2대", "고추장 2스푼", "설탕 2스푼"],
-        "steps": ["냄비에 물 2컵과 고추장, 설탕을 풀고 끓입니다.", "물이 끓으면 씻어둔 떡과 어묵을 넣습니다.", "국물이 걸쭉해지면 대파를 넣고 한 번 더 졸입니다."]
+        "steps": ["냄비에 물 2컵 and 고추장, 설탕을 풀고 끓입니다.", "물이 끓으면 씻어둔 떡과 어묵을 넣습니다.", "국물이 걸쭉해지면 대파를 넣고 한 번 더 졸입니다."]
     },
     {
-        "dish": "시원하고 깔끔한 바지락 칼
+        "dish": "시원하고 깔끔한 바지락 칼국수",
+        "tags": ["바지락", "칼국수면", "애호박"],
+        "ingredients": ["칼국수 생면 1인분", "바지락 1봉지", "애호박 1/4개", "다진마늘 0.5스푼"],
+        "steps": ["냄비에 물과 해감된 바지락을 넣어 끓여 육수를 냅니다.", "거품을 걷어내고 채 썬 애호박과 칼국수 면을 넣습니다.", "면이 익을 때까지 5~6분간 끓인 뒤 소금으로 간을 합니다."]
+    },
+    {
+        "dish": "고소한 차돌박이 숙주찜",
+        "tags": ["돼지고기", "숙주"],
+        "ingredients": ["차돌박이 200g", "숙주 1봉지", "팽이버섯 1개"],
+        "steps": ["찜기 바닥에 숙주와 팽이버섯을 도톰하게 깝니다.", "그 위에 고기를 겹치지 않게 올립니다.", "뚜껑을 닫고 김이 오르는 찜기에서 7~8분간 쪄서 소스에 찍어 먹습니다."]
+    },
+    {
+        "dish": "캠핑 필수템 콘치즈",
+        "tags": ["옥수수콘", "치즈"],
+        "ingredients": ["캔옥수수 1통", "모짜렐라 치즈 1컵", "마요네즈 3스푼", "설탕 1스푼"],
+        "steps": ["캔옥수수는 물기를 완전히 빼서 준비합니다.", "옥수수에 마요네즈, 설탕을 넣고 잘 버무립니다.", "팬에 올린 뒤 치즈를 가득 얹고 치즈가 녹을 때까지 약불에서 구워줍니다."]
+    },
+    {
+        "dish": "초스피드 계란라면",
+        "tags": ["라면", "계란", "대파"],
+        "ingredients": ["라면 1봉지", "계란 1개", "대파 약간", "물 550ml"],
+        "steps": ["물이 끓으면 스프와 면을 넣고 끓입니다.", "면이 반쯤 익었을 때 대파를 넣습니다.", "불을 끄기 30초 전 계란을 풀지 않고 그대로 넣어 익힙니다."]
+    }
+]
+
+# 모든 등록된 재료 태그 추출 및 정렬
+ALL_INGREDIENTS = sorted(list(set(tag for recipe in RECIPE_DB for tag in recipe["tags"])))
+
+# UI 디자인
+st.title("👨‍🍳 냉장고 파먹기 레시피 대백과 v2")
+st.write("우리 집 냉장고에 있는 재료를 체크해 보세요! 만들 수 있는 다채로운 요리를 추천합니다.")
+st.markdown("---")
+
+# 다중 선택 박스
+selected_ingredients = st.multiselect(
+    "보유 중인 식재료를 선택하세요 (복수 선택 가능)",
+    options=ALL_INGREDIENTS,
+    default=["계란", "김치"]
+)
+
+st.markdown("---")
+
+# 필터링 로직
+matched_recipes = []
+if selected_ingredients:
+    for recipe in RECIPE_DB:
+        if any(tag in selected_ingredients for tag in recipe["tags"]):
+            matched_recipes.append(recipe)
+
+# 결과 화면 출력
+if not selected_ingredients:
+    st.info("재료를 선택하시면 맛있는 요리법이 나타납니다! 🥕🥔🥚")
+elif not matched_recipes:
+    st.warning("선택하신 재료로 구성된 레시피를 찾지 못했습니다. 다른 재료를 추가해 보세요!")
+else:
+    st.success(f"🎉 총 {len(matched_recipes)}개의 맞춤 레시피를 찾았습니다!")
+    
+    # 레시피 카드 반복 출력
+    for recipe in matched_recipes:
+        with st.expander(f"&nbsp;✨ {recipe['dish']} (태그: {', '.join(recipe['tags'])})", expanded=True):
+            col1, col2 = st.columns([1, 2])
+            
+            with col1:
+                st.markdown("#### 🛒 준비할 재료")
+                for ing in recipe["ingredients"]:
+                    st.write(f"- {ing}")
+                    
+            with col2:
+                st.markdown("#### 👨‍🍳 요리 순서")
+                for i, step in enumerate(recipe["steps"], 1):
+                    st.write(f"{i}. {step}")

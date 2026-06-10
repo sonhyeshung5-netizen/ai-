@@ -1,79 +1,83 @@
-import pandas as pd
-import streamlit as st
+import streamlit as str
 
-# 1. 데이터 불러오기 및 전처리
-@st.cache_data
-def load_data():
-    # 한글 깨짐 방지를 위해 cp949 또는 utf-8-sig 사용
-    try:
-        df = pd.read_csv("adadawdadwa.csv", encoding="utf-8-sig")
-    except UnicodeDecodeError:
-        df = pd.read_csv("adadawdadwa.csv", encoding="cp949")
+# 웹페이지 제목 및 아이콘 설정
+str.set_page_config(page_title="냉장고 파먹기 레시피 추천", page_icon="🍳")
+
+# 간단한 레시피 데이터베이스
+RECIPE_DB = {
+    "계란": {
+        "dish": "부드러운 계란찜",
+        "ingredients": ["계란 3개", "물 100ml", "소금 소량", "쪽파 약간"],
+        "steps": [
+            "계란을 그릇에 풀고 물과 소금을 넣어 잘 섞어줍니다.",
+            "체에 한번 거르면 더 부드러워집니다.",
+            "전자레인지용 용기에 담아 랩을 씌운 후 구멍을 뚫어줍니다.",
+            "전자레인지에서 3분 30초간 조리합니다."
+        ]
+    },
+    "두부": {
+        "dish": "매콤 두부조림",
+        "ingredients": ["두부 1모", "간장 3스푼", "고춧가루 1스푼", "다진 마늘 0.5스푼", "물 0.5컵"],
+        "steps": [
+            "두부를 먹기 좋은 크기로 썰어 물기를 제거합니다.",
+            "양념장 재료(간장, 고춧가루, 마늘, 물)를 한데 섞어줍니다.",
+            "팬에 기름을 두르고 두부를 앞뒤로 노릇하게 구웁니다.",
+            "양념장을 붓고 국물이 자작해질 때까지 졸입니다."
+        ]
+    },
+    "김치": {
+        "dish": "백종원풍 김치볶음밥",
+        "ingredients": ["신김치 1컵", "밥 1공기", "대파 1/2대", "간장 1스푼", "설탕 0.5스푼"],
+        "steps": [
+            "대파를 송송 썰어 식용유를 두른 팬에 볶아 파기름을 냅니다.",
+            "다진 김치와 설탕을 넣고 함께 볶아줍니다.",
+            "재료를 한쪽으로 밀고 빈 공간에 간장을 눌려 불맛을 냅니다.",
+            "불을 끄고 밥을 넣어 잘 비빈 후, 다시 불을 켜서 살짝 볶아 마무리합니다."
+        ]
+    },
+    "닭고기": {
+        "dish": "달콤 짭조름한 찜닭",
+        "ingredients": ["닭고기 500g", "감자 1개", "양파 1/2개", "간장 5스푼", "올리고당 2스푼"],
+        "steps": [
+            "닭고기는 끓는 물에 데쳐 불순물을 제거합니다.",
+            "냄비에 닭고기, 썰어둔 감자, 양파, 물을 넣고 끓입니다.",
+            "간장과 올리고당으로 양념을 하고 중불에서 졸입니다.",
+            "감자가 완전히 익고 양념이 잘 배어들면 완성입니다."
+        ]
+    }
+}
+
+# UI 구성
+str.title("🍳 냉장고 파먹기! 레시피 추천 시스템")
+str.write("가지고 있는 주요 식재료를 선택하면 맛있는 요리를 추천해 드려요.")
+
+str.markdown("---")
+
+# 식재료 선택 셀렉트박스
+selected_ingredient = str.selectbox(
+    "지금 냉장고에 있는 재료를 골라보세요 👇",
+    options=list(RECIPE_DB.keys()),
+    index=0
+)
+
+# 선택된 재료에 따른 레시피 출력
+if selected_ingredient:
+    recipe_info = RECIPE_DB[selected_ingredient]
     
-    # 공백 제거 및 열 이름 표준화
-    df.columns = [col.strip() for col in df.columns]
+    str.subheader(Target:= f"💡 추천 요리: **{recipe_info['dish']}**")
     
-    # 필요한 열들이 존재하는지 확인하고 이름 맞추기
-    # 데이터 예시: '鼻貲'(이름/음식종류 예상), '輿模'(주소), '夔蘸隴URL'(URL) 등
-    # 원본 컬럼명이 깨져있을 수 있으므로 인덱스로 접근하거나 이름을 변경합니다.
-    return df
-
-try:
-    df = load_data()
+    # 2단 레이아웃 구성 (좌측: 재료, 우측: 조리 순서)
+    col1, col2 = str.columns(2)
     
-    # 스트림릿 UI 구성
-    st.title(" 서울 맛집 가이드 프로그램")
-    st.write("원하는 음식점이나 키워드를 선택하시면 상세 정보를 안내해 드립니다.")
-    st.write("---")
-
-    # 원본 데이터의 컬럼 매핑 (제공된 파일 기준 설정)
-    # 3번째 컬럼: 이름/종류, 4번째: URL, 5번째: 주소, 9번째: 영업시간, 10번째: 교통정보
-    name_col = df.columns[2]  # 상호명 또는 음식 종류
-    url_col = df.columns[3]   # URL
-    addr_col = df.columns[4]  # 주소
-    time_col = df.columns[8]  # 영업시간
-    trans_col = df.columns[9] # 교통 정보
-
-    # 데이터 정제 (결측치 제거 및 문자열 변환)
-    df[name_col] = df[name_col].fillna("알 수 없음").astype(str)
-
-    # 2. 음식/음식점 선택 창
-    food_list = sorted(df[name_col].unique())
-    selected_food = st.selectbox("궁금한 음식점이나 키워드를 선택하세요:", food_list)
-
-    # 3. 선택된 항목의 데이터 필터링
-    # 가장 많이 나타난 데이터(가장 많이 방문했거나 추천된 곳)를 기준으로 소개
-    selected_data = df[df[name_col] == selected_food]
-    
-    if not selected_data.empty:
-        st.success(f"🔍 '{selected_food}' 선택 완료! 가장 알맞은 정보를 매칭했습니다.")
-        
-        # 첫 번째 행을 대표 정보로 가져옴
-        row = selected_data.iloc[0]
-        
-        # 4. 음식점 정보 출력
-        st.subheader(f"🏪 음식점/명소 이름: {row[name_col]}")
-        
-        # 상세 정보 레이아웃 구성
-        col1, col2 = st.columns(2)
-        
-        with col1:
-            st.markdown(f"📌 **기본 주소:** {row[addr_col]}")
-            if len(df.columns) > 5:
-                st.markdown(f"📮 **상세 주소:** {row[df.columns[5]]}")
-        
-        with col2:
-            st.markdown(f"⏰ **영업 시간:** {row[time_col] if pd.notna(row[time_col]) else '정보 없음'}")
-            st.markdown(f"🚇 **교통 안내:** {row[trans_col] if pd.notna(row[trans_col]) else '정보 없음'}")
+    with col1:
+        str.markdown("### 🛒 필요 재료")
+        for ing in recipe_info["ingredients"]:
+            str.write(f"- {ing}")
             
-        st.write("---")
-        
-        # 웹사이트 링크 버튼
-        if pd.notna(row[url_col]):
-            st.link_button("🔗 공식 visitseoul 웹사이트 방문하기", row[url_col])
-            
-        # 동일한 카테고리/이름으로 데이터가 여러 개 있을 경우 빈도수 표현
-        st.info(f"💡 이 항목은 데이터 내에서 총 **{len(selected_data)}번** 언급/등록되었습니다.")
+    with col2:
+        str.markdown("### 👨‍🍳 조리 순서")
+        for i, step in enumerate(recipe_info["steps"], 1):
+            str.write(f"{i}. {step}")
 
-except Exception as e:
-    st.error(f"데이터를 읽어오는 중 오류가 발생했습니다. 파일명과 컬럼을 확인해주세요. 오류 내용: {e}")
+str.markdown("---")
+str.caption("맛있는 식사 시간 되세요! 🍽️")

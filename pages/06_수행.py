@@ -228,3 +228,28 @@ else:
                 for i, step in enumerate(recipe["steps"], 1):
                     st.write(f"{i}. {step}")
         st.markdown("<br>", unsafe_allowed_html=True)
+# 결과 화면 출력 (이 부분만 찾아서 덮어쓰기 하거나 참고하여 수정하세요)
+if not selected_ingredients:
+    st.info("식재료를 선택하시면 기적 같은 요리법들이 펼쳐집니다! 🥕🥔🥚")
+elif not matched_recipes:
+    st.warning("선택하신 재료로 구성된 레시피를 찾지 못했습니다. 다른 조합을 시도해 보세요!")
+else:
+    st.success(f"🎉 선택한 재료로 만들 수 있는 요리를 총 {len(matched_recipes)}개 찾았습니다!")
+    
+    # 레시피 카드 반복 출력
+    for recipe in matched_recipes:
+        with st.expander(f"✨ **{recipe['dish']}** (연관 식재료: {', '.join(recipe['tags'])})", expanded=True):
+            col1, col2 = st.columns([1, 2])
+            
+            with col1:
+                st.markdown("#### 🛒 준비할 재료")
+                for ing in recipe["ingredients"]:
+                    st.write(f"- {ing}")
+                    
+            with col2:
+                st.markdown("#### 👨‍🍳 요리 순서")
+                for i, step in enumerate(recipe["steps"], 1):
+                    st.write(f"{i}. {step}")
+        
+        # 🔥 [수정 조치] 에러를 유발하던 st.markdown 대신 안전한 st.html을 사용합니다.
+        st.html("<br>")
